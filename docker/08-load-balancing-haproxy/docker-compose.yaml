@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  # HAProxy Load Balancer
+  haproxy:
+    image: haproxy:2.6-alpine
+    container_name: haproxy_load_balancer
+    
+    # The haproxy configuration file is mounted from the host into the container.
+    # ':ro' makes the file read-only inside the container for security.
+    volumes:
+      - ./haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+      
+    ports:
+      # Expose port 80 to the host for incoming application traffic.
+      - "80:80"
+      # Expose port 8404 to the host for the HAProxy stats/monitoring page.
+      - "8404:8404"
+      
+    # Ensure backend services are started before the load balancer.
+    depends_on:
+      - web1
+      - web2
+      
+    restart: unless-stopped
+
+  # Backend Web Server 1
+  web1:
+    image: nginxdemos/hello
+    container_name: backend_web_server_1
+    # This service is not exposed to the host. It's only accessible
+    # from within the Docker network (specifically, by haproxy).
+    restart: unless-stopped
+
+  # Backend Web Server 2
+  web2:
+    image: nginxdemos/hello
+    container_name: backend_web_server_2
+    restart: unless-stopped
