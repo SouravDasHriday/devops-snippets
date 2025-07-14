@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  # PHP-Apache Service
+  web:
+    image: php:8.1-apache
+    container_name: lamp_web_server
+    
+    ports:
+      - "8000:80"
+      
+    volumes:
+      # Mount application source code for live development
+      - ./src:/var/www/html
+      # Mount a custom php.ini to enable necessary extensions (like mysqli)
+      - ./php/php.ini:/usr/local/etc/php/conf.d/extra-php-config.ini
+      
+    # Pass database credentials from the .env file as environment variables to the container.
+    # The PHP application will read these to connect to the database.
+    environment:
+      - DB_HOST=db
+      - DB_USER=${MYSQL_USER}
+      - DB_PASSWORD=${MYSQL_PASSWORD}
+      - DB_NAME=${MYSQL_DATABASE}
+      
+    # This is a critical directive. It tells Compose to wait until the 'db' service
+    # reports a 'healthy' status (based on its healthcheck) before starting this 'web' service.
+    depends_on:
+      db:
+        condition: service_healthy
+        
+    restart: unless-stopped
+
+  # MySQL Database Service
+  db:
+    image: mysql:8.0
+    container_name: lamp_database
+    
+    # These environment variables are used by the official MySQL image
+    # to initialize the database, create a user, and set passwords.
+    environment:
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      
+    volumes:
+      # Use a named volume to persist database data. This is crucial.
+      # The data will survive even if the container is removed and recreated.
+      - db_data:/var/lib/mysql
+      
+    # The healthcheck defines a command to check if the service is operational.
+    # The 'web' service's 'depends_on' condition relies on this check passing.
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      
+    restart: unless-stopped
+
+# The top-level 'volumes' key declares the named volume.
+# This makes it explicit and allows for further configuration if needed.
+volumes:
+  db_data:
