@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  static-site:
+    # The 'build' instruction tells Docker Compose to build an image from a Dockerfile.
+    # The value '.' specifies that the Dockerfile is located in the current directory.
+    build: .
+    
+    container_name: custom_nginx_static_site
+    
+    ports:
+      # We map port 80 on the host to port 80 in the container for standard web access.
+      - "80:80"
+      
+    restart: unless-stopped
