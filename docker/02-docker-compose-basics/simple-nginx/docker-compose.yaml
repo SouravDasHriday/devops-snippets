@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  # Define a service named 'webserver'
+  webserver:
+    # Use the official NGINX image, version 1.23, based on Alpine Linux for a smaller footprint.
+    image: nginx:1.23-alpine
+    container_name: basic_nginx_server
+    
+    ports:
+      # Map port 8080 on the host machine to port 80 (the default HTTP port) in the container.
+      # Format: "HOST_PORT:CONTAINER_PORT"
+      - "8080:80"
+      
+    volumes:
+      # Mount the local './src' directory to the NGINX web root inside the container.
+      # This is a 'bind mount'. Changes made to files in './src' on your host
+      # will immediately be reflected inside the running container.
+      - ./src:/usr/share/nginx/html:ro # 'ro' makes it read-only inside the container for added safety.
+      
+    # This policy ensures the container restarts automatically unless it is manually stopped.
+    restart: unless-stopped
