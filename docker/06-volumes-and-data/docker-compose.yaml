@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  # This service demonstrates a BIND MOUNT.
+  # It maps a specific file from the host into the container.
+  bind-mount-demo:
+    image: alpine:3.16
+    container_name: demo_bind_mount
+    
+    # This command will keep the container running and continuously display
+    # the content of the file. You can edit './data/log.txt' on your
+    # host machine to see the output change.
+    command: tail -f /app/log.txt
+    
+    volumes:
+      # Format: HOST_PATH:CONTAINER_PATH
+      - ./data/log.txt:/app/log.txt
+
+  # This service demonstrates a NAMED VOLUME.
+  # This is the preferred method for persisting application data in production.
+  named-volume-demo:
+    image: alpine:3.16
+    container_name: demo_named_volume
+    
+    # This command writes a new log entry every 5 seconds. This data will be
+    # stored in the 'app_data' named volume.
+    command: sh -c "while true; do echo \"Log entry from named volume at $(date)\" >> /data/app.log; sleep 5; done"
+    
+    volumes:
+      # Format: VOLUME_NAME:CONTAINER_PATH
+      - app_data:/data
+
+# The top-level 'volumes' key is where you declare named volumes.
+# This allows you to configure them (e.g., with specific drivers or labels).
+volumes:
+  app_data:

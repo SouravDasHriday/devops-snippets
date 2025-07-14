@@ -1,0 +1,2 @@
+This is a log file on the host machine.
+Add new lines here and the 'bind-mount-demo' container will display them.
