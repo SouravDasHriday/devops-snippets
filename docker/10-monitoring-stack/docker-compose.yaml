@@ -1,0 +1,74 @@
+version: '3.8'
+
+# Define named volumes for data persistence
+volumes:
+  prometheus_data: {}
+  grafana_data: {}
+
+services:
+  # Prometheus: The core monitoring service that scrapes and stores time-series data.
+  prometheus:
+    image: prom/prometheus:v2.37.1
+    container_name: prometheus
+    volumes:
+      # Mount the custom prometheus config file
+      - ./prometheus/:/etc/prometheus/
+      # Mount a named volume to persist the metrics database
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    ports:
+      - "9090:9090"
+    restart: unless-stopped
+
+  # Grafana: The visualization service for building dashboards.
+  grafana:
+    image: grafana/grafana:9.1.0
+    container_name: grafana
+    volumes:
+      # Mount a named volume to persist Grafana's database (users, dashboards, etc.)
+      - grafana_data:/var/lib/grafana
+      # Mount the provisioning directory to automatically configure data sources and dashboards
+      - ./grafana/provisioning/:/etc/grafana/provisioning/
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+
+  # Node Exporter: Exposes metrics about the Docker host machine (CPU, RAM, Disk).
+  node-exporter:
+    image: prom/node-exporter:v1.3.1
+    container_name: node_exporter
+    # Mount host directories to be able to read system stats
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--path.rootfs=/rootfs'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    ports:
+      - "9100:9100"
+    restart: unless-stopped
+
+  # cAdvisor: Exposes metrics about running containers.
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.45.0
+    container_name: cadvisor
+    # Mount host directories to be able to read container stats
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    ports:
+      - "8081:8080" # Use a different host port to avoid conflicts
+    restart: unless-stopped

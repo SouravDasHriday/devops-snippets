@@ -1,0 +1,22 @@
+# Global configuration for Prometheus
+global:
+  scrape_interval: 15s # How frequently to scrape targets by default
+
+# A list of scrape configurations.
+scrape_configs:
+  # Job to scrape Prometheus itself
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # Job to scrape Node Exporter for host metrics
+  - job_name: 'node_exporter'
+    static_configs:
+      # Use the Docker service name and port
+      - targets: ['node-exporter:9100']
+
+  # Job to scrape cAdvisor for container metrics
+  - job_name: 'cadvisor'
+    static_configs:
+      # Use the Docker service name and port
+      - targets: ['cadvisor:8080']
