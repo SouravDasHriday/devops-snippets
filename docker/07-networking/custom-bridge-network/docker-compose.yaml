@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  # This frontend service can be reached from the host machine via port 8080.
+  frontend:
+    image: alpine:3.16
+    container_name: bridge_frontend
+    
+    # This command pings the backend service by its name every 5 seconds.
+    # This works because both services are on the 'app-net' custom bridge network.
+    command: sh -c "apk add --no-cache iputils && while true; do echo 'Pinging backend...'; ping -c 1 backend; sleep 5; done"
+    
+    # Attach this service to our custom network.
+    networks:
+      - app-net
+
+  # This backend service is completely isolated from the host.
+  # It exposes no ports and is only accessible by other containers on the same network.
+  backend:
+    image: alpine:3.16
+    container_name: bridge_backend
+    
+    # This service just needs to stay running to be pingable.
+    command: tail -f /dev/null
+    
+    # Attach this service to our custom network as well.
+    networks:
+      - app-net
+
+# The top-level 'networks' key is where you define your custom networks.
+networks:
+  app-net:
+    driver: bridge

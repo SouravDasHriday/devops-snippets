@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  # This service will have replicas spread across the swarm.
+  frontend:
+    image: alpine:3.16
+    # This command uses curl to demonstrate service discovery.
+    # It attempts to connect to the 'backend' service by name.
+    command: sh -c "apk add --no-cache curl && while true; do echo 'Attempting to curl backend...'; curl -s backend; echo; sleep 3; done"
+    deploy:
+      replicas: 2
+    networks:
+      - my-overlay-net
+
+  # This backend service will also have replicas spread across the swarm.
+  backend:
+    image: nginxdemos/hello:plain-text
+    # This service is not exposed to the outside world directly via a port.
+    # It is only accessible to services on the same overlay network.
+    deploy:
+      replicas: 3
+    networks:
+      - my-overlay-net
+
+# Define the custom overlay network.
+networks:
+  my-overlay-net:
+    driver: overlay
+    # 'attachable: true' allows you to connect standalone containers to this
+    # swarm network for debugging purposes (e.g., docker run --network my-overlay-net ...).
+    attachable: true
