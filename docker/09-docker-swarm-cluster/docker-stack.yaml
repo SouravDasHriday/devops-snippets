@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  # A simple web service to demonstrate scaling and high availability.
+  web:
+    image: nginxdemos/hello:plain-text
+    ports:
+      # The Swarm 'ingress' routing mesh will route traffic from port 8080 on ANY node
+      # in the cluster to a healthy container for this service.
+      - "8080:80"
+      
+    deploy:
+      # The desired number of running container instances (replicas) for this service.
+      replicas: 3
+      
+      # Configuration for how to perform rolling updates when the service is updated.
+      update_config:
+        parallelism: 1          # Update one replica at a time.
+        delay: 10s              # Wait 10 seconds between updating replicas.
+        order: stop-first       # Stop the old container before starting the new one.
+        
+      # The self-healing mechanism. If a container fails, Swarm will restart it.
+      restart_policy:
+        condition: on-failure
+
+  # A visualizer service to see how services are placed on nodes.
+  visualizer:
+    image: dockersamples/visualizer:stable
+    ports:
+      - "8001:8080" # Use a different host port to avoid conflict with 'web'
+      
+    # This service needs access to the Docker socket to read cluster state.
+    # This is a privileged operation and should be used with caution.
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+      
+    # The 'stop_grace_period' ensures the container has time to shut down cleanly.
+    stop_grace_period: 1m30s
+    
+    deploy:
+      # The 'placement' constraint ensures this service will ONLY be scheduled on a manager node.
+      # This is a common pattern for administrative or singleton services.
+      placement:
+        constraints:
+          - node.role == manager
